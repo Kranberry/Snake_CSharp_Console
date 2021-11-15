@@ -1,30 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Snake
 {
-    /* TODO
-     * Add a menu screen.   check
-     * 
-     * Start new game   check
-     *      Choose difficulty   check
-     *      
-     * Exit game    check
-     * Credits      check
-     */
-    public struct GameMenu
+    public class GameMenu
     {
-        private static Action CallChoosenMethod;    // This delegate is used to keep the code more neat and clean
+        private static string PlayerName { get; set; } = null;
 
+        /// <summary>
+        /// Run the method where the main loop resides. The Game menu.
+        /// </summary>
         public static void GenerateGameMenu()
         {
+            Action CallChoosenMethod;    // This delegate is used to keep the code more neat and clean
             Console.SetCursorPosition(0, 0);
 
             while (true)
             {
+                #pragma warning disable CA1416 // Validate platform compatibility
+                Console.SetWindowSize(100, 20);
+                Console.SetBufferSize(100, 20);
                 Console.CursorVisible = true;
                 int choosenOption = ShowGameMenu();
 
@@ -32,34 +27,35 @@ namespace Snake
                 CallChoosenMethod = choosenOption switch
                 {
                     1 => StartNewGame,
-                    2 => RollCredits,
-                    3 => ExitGame,
+                    2 => ShowHighScore,
+                    3 => HowToPlay,
+                    4 => RollCredits,
+                    5 => ExitGame,
                     _ => ExitGame   // Not actually nessecary. But removes annoying warning
                 };
 
                 CallChoosenMethod();
             }
-
-            //Timer Timer = Timer.TimerInstance;
-            //Console.Write($"Played for {Timer.GameTime} seconds");
         }
 
         /// <summary>
         /// Show the game menu.
         /// </summary>
-        /// <returns>An int between 1 and 3 (inclusive) that represents the choosen value</returns>
+        /// <returns>An int between 1 and 5 (inclusive) that represents the choosen value</returns>
         private static int ShowGameMenu()
         {
             Console.Clear();
             Console.WriteLine("(1) : New Game");
-            Console.WriteLine("(2) : Credits");
-            Console.WriteLine("(3) : Exit game");
+            Console.WriteLine("(2) : HighScore");
+            Console.WriteLine("(3) : How To Play");
+            Console.WriteLine("(4) : Credits");
+            Console.WriteLine("(5) : Exit game");
 
             int? ChoosenOption = 0;
             bool validInput;
             do
             {
-                Console.Write(ChoosenOption == null ? "Not a valid input. 1 - 3: " : "\r");
+                Console.Write(ChoosenOption == null ? "Not a valid input. 1 - 4: " : "\r");
                 string userChoice = Console.ReadLine();
 
                 ChoosenOption = userChoice switch
@@ -67,6 +63,8 @@ namespace Snake
                     "1" => 1,
                     "2" => 2,
                     "3" => 3,
+                    "4" => 4,
+                    "5" => 5,
                     _ => null
                 };
 
@@ -77,18 +75,49 @@ namespace Snake
         }
 
         /// <summary>
+        /// Show the top 10 scores (The only ones stored) in sorted order
+        /// </summary>
+        private static void ShowHighScore()
+        {
+            Console.Clear();
+
+            HighScore highScore = HighScore.HighScoreInstance;
+            PlayerScore[] playerScores = highScore.GetHighScores();
+
+            Console.WriteLine($"{"", 4}{"Name", -13}{"Score", -8}{"Time", -8}Difficulty");
+            for(int i = 0; i < playerScores.Length; i++)
+            {
+                // More fun seeing the difficulty in text, rather than numbers
+                string difficultyText = playerScores[i].Difficulty switch
+                {
+                    1 => "Easy",
+                    2 => "Medium",
+                    3 => "Hard",
+                    _ => ""
+                };
+
+                Console.WriteLine($"{i+1, -2}: {playerScores[i].PlayerName, -13}{playerScores[i].Score, -8}{playerScores[i].PlayTime, -8}{difficultyText}");
+            }
+
+            Console.WriteLine("\nPress any key to continue...");
+            Console.ReadKey();
+        }
+
+        /// <summary>
         /// Reset the game settings and start a new game
         /// </summary>
         private static void StartNewGame()
         {
-            Timer timer = Timer.TimerInstance;
-            timer.GameTime = 0;
-            timer.GameEnd = false;
+            ScoreBoard ScoreBoard = ScoreBoard.ScoreBoardInstance;
+            GameUpdateTimer timer = GameUpdateTimer.TimerInstance;
+            ScoreBoard.PlayTime = 0;
+            timer.GameIsEnding = false;
+            timer.GameHasEnded = false;
             // Tuples!!!!
             (Vector2D[] arenaSize, int difficulty) = ChoosenDifficulty();
 
             SnakeGame game = new();
-            game.StartGame(arenaSize, difficulty);   // Start the game
+            game.StartGame(arenaSize, difficulty, PlayerName);   // Start the game
         }
 
         /// <summary>
@@ -98,17 +127,28 @@ namespace Snake
         private static (Vector2D[], int) ChoosenDifficulty()
         {
             Console.Clear();
+            Console.WriteLine("(0) : Choose new player name");
             Console.WriteLine("(1) : Easy");    // Only portal walls            (4, 0) --> (20, 35)
             Console.WriteLine("(2) : Medium");  // Few portal walls             (4, 0) --> (15, 30)
             Console.WriteLine("(3) : Hard");    // Only walls, no portal walls  (4, 0) --> (15, 30)
 
             Vector2D[] arenaSize;
-            int? difficulty = 0;
+            int? difficulty = 0;    // Nullable because of checking on the input. Could be anything, But wanted nullable
             bool validInput;
             do
             {
                 Console.Write(difficulty == null ? "Not a valid input. 1 - 3: " : "\r");
                 string input = Console.ReadLine();
+
+                while (input == "0")    // Choose your name dear player
+                {
+                    Console.WriteLine("Enter your name (Maximum 12 characters)");
+                    PlayerName = Console.ReadLine();
+                    PlayerName = PlayerName.Length > 12 ? PlayerName.Remove(11) : PlayerName;   // If the name is greater 12 characters. Cut it down to 12
+                    Console.WriteLine("Choose a fifficulty");   // As it says, choose a fifficulty
+                    input = Console.ReadLine();
+                }
+
                 // TUUUUUUUPLES!
                 (arenaSize, difficulty) = input switch
                 {
@@ -128,7 +168,7 @@ namespace Snake
         /// Exit the game. Kill the process
         /// </summary>
         private static void ExitGame() => Environment.Exit(0);
-        
+
         /// <summary>
         /// :)
         /// </summary>
@@ -136,8 +176,22 @@ namespace Snake
         {
             Console.Clear();
             Console.WriteLine("Written by yours truly");
-            Console.WriteLine("......................");
+            Console.WriteLine("......................\n\n");
             Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+        }
+
+        /// <summary>
+        /// Shows the noobs how to play the game
+        /// </summary>
+        private static void HowToPlay()
+        {
+            Console.Clear();
+            Console.WriteLine("Change directions with: W, A, S, D. OR arrow keys");
+            Console.WriteLine("Return to Main Menu at any time by pressing the ESCAPE key");
+            Console.WriteLine("─ or │: represents a portal. Passing through will send you to the opposite side");
+            Console.WriteLine("█ : represents a wall. Yeah, don't touch it");
+            Console.WriteLine("☼ : represents food. Green = 3 points, Yellow = 2 points, white = 1 point");
             Console.ReadKey();
         }
     }

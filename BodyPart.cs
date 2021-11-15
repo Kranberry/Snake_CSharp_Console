@@ -1,24 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Snake
+﻿namespace Snake
 {
     public class BodyPart : GameObject, IRenderable
     {
         public Vector2D NewPosition { get; set; }
-        public GameObject ConnectedTo { get; set; }
+        public Player Head { get; init; }   // This will never change
+        public GameObject ConnectedTo { get; set; } // This will change whenever a new food is consumed by the player
         public char LookType { get; set; }
+        public FoodColor FoodColor { get; init; }
 
-        public BodyPart(Player connectedTo, Vector2D position) : base("playerBody", position, ObjectType.BodyPart)
+        public BodyPart(Player connectedTo, Vector2D position, FoodColor foodColor = FoodColor.Bad) : base("playerBody", position, ObjectType.BodyPart)
         {
+            Head = connectedTo;
             ConnectedTo = connectedTo;
-            /* TODO
-             * Change the bodypart looktype to something better
-             */
             LookType = '©';
+            FoodColor = foodColor;
             NewPosition = ConnectedTo.GetPosition();
         }
 
@@ -26,9 +21,6 @@ namespace Snake
         /// Change the current connected gameobject to a new connected gameobject
         /// </summary>
         /// <param name="newConnection">The new connected gameObject</param>
-        public void NewConnection(GameObject newConnection)
-        {
-            ConnectedTo = newConnection;
-        }
+        public void NewConnection(GameObject newConnection) => ConnectedTo = newConnection;
     }
 }

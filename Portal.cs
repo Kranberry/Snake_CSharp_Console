@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Snake
+﻿namespace Snake
 {
     class Portal : GameObject, IRenderable
     {
@@ -19,14 +13,15 @@ namespace Snake
         /// Teleport the player to the opposite side of the arena
         /// </summary>
         /// <param name="player">The player to be teleported</param>
-        public void TeleportPlayer(Player player)
+        public static void TeleportPlayer(Player player)
         {
+            player.HasTeleported = true;
             GameWorld game = GameWorld.GameWorldInstance;
-            // Create new variables to not refrence the players value
+            // Create new variables to not refrence the players values
             int X = player.GetPosition().X;
             int Y = player.GetPosition().Y;
 
-            // Set the new teleported area
+            // Set the new teleported position
             Vector2D playerPosition = player.Direction switch
             {
                 Direction.North => new(game.BottomRightCornerPos.X - 1, Y),
@@ -36,11 +31,9 @@ namespace Snake
                 _ => new(0, 0)
             };
 
-            bool isPortal = true;
-            // Check collision with the new position
-            player.CollidedWithGameObject(playerPosition, ref isPortal);
-            // Set the new position of the player
-            player.HardSetPosition(playerPosition);
+            game.RenderPosition(player.GetPosition());
+            // Set the new position of the player, while keeping the old position pure
+            player.HarSetPositionEX(playerPosition);
         }
     }
 }

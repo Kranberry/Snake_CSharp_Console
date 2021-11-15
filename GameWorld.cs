@@ -4,44 +4,21 @@ using System.Linq;
 
 namespace Snake
 {
-    public sealed class GameWorld
+    public class GameWorld
     {
-        public List<GameObject> GameObjects = new List<GameObject>();
-        public PhysicsEngine2D.Collision2D collisionDetection = new();
-        readonly Timer Timer = Timer.TimerInstance;
+        public List<GameObject> CollisionObjects = new();
+        readonly ScoreBoard ScoreBoard = ScoreBoard.ScoreBoardInstance;
 
         public Vector2D TopLeftCornerPos { get; set; }
         public Vector2D BottomRightCornerPos { get; set; }
-        public int Height { get; private set; }
-        public int Width { get; private set; }
-        public int Score { get; set; } = 0;
 
-        // This is my very first time using a singleton.
+        // This is my very first time using a singleton. 
         // I ams so excited
-        private GameWorld() { }
-        private static readonly Lazy<GameWorld> Game = new Lazy<GameWorld>(() => new GameWorld());
+        private GameWorld() { } // Private constructor. Only one instance allowed
+        private static readonly Lazy<GameWorld> Game = new Lazy<GameWorld>(() => new GameWorld());  // Create a Lazy<T> object that will only initialize the first instance when it is called upon
         public static GameWorld GameWorldInstance
         {
-            get
-             {
-                return Game.Value;
-            }
-        }
-
-        /// <summary>
-        /// Resets the game to factory defaults
-        /// </summary>
-        public void ResetGame()
-        {
-            Console.Clear();
-            Timer.GameEnd = true;
-            Console.SetCursorPosition(0, 3);
-            Console.WriteLine("Exiting game...");
-            // Thread.Sleep will block the current thread x amount of milliseconds
-            System.Threading.Thread.Sleep(1200);
-            Console.SetCursorPosition(0, 4);
-            Console.WriteLine(":(");
-            GameObjects.Clear();
+            get => Game.Value;  // Get our instance
         }
 
         /// <summary>
@@ -50,32 +27,53 @@ namespace Snake
         public void RenderPlayer()
         {
             // Select all players that exists (Including AI)
-            IEnumerable<Player> selectedPlayers = from p in GameObjects
-                                                 where p.GetObjectType() == ObjectType.Player
-                                                 select (Player)p;
+            List<GameObject> selectedPlayers = CollisionObjects.FindAll((x) => x.GetObjectType() == ObjectType.Player);
 
-            // If we have multiple players (including AI), this will be useful for rendering all this.
-            // Otherwise, the foreach loop is just resource consuming
+            // Render each player (Including AI, if I ever add one)
             foreach(Player player in selectedPlayers.ToList())
             {
-                // Clear the old player and body positions
-                Console.SetCursorPosition(player.OldPosition.Y, player.OldPosition.X);
-                Console.Write(" ");
-                foreach (BodyPart bodyPart in player.BodyParts)
-                {
-                    Console.SetCursorPosition(bodyPart.OldPosition.Y, bodyPart.OldPosition.X);
-                    Console.Write(" ");
-                }
-                // Render the player and the body
-                Console.SetCursorPosition(player.GetPosition().Y, player.GetPosition().X);
-                Console.Write(player.LookType);
-
-                foreach (BodyPart bodyPart in player.BodyParts)
-                {
-                    Console.SetCursorPosition(bodyPart.GetPosition().Y, bodyPart.GetPosition().X);
-                    Console.Write(bodyPart.LookType);
-                }
+                if(!player.HasTeleported)
+                    RenderPlayerAndBody(player);
             }
+        }
+
+        /// <summary>
+        /// Rerender the player and the body
+        /// </summary>
+        /// <param name="player">The player to render</param>
+        /// <param name="doRender">false if you want to clear the old render first, true if you want to only render</param>
+        private void RenderPlayerAndBody(Player player, bool doRender = false)
+        {
+            // Get the x and y of either the old position or the current one. Depening on wheter we clear or draw
+            (int x, int y) = doRender switch
+            {
+                true => (player.GetPosition().X, player.GetPosition().Y),
+                false => (player.GetOldPosition().X, player.GetOldPosition().Y)
+            };
+
+            Console.SetCursorPosition(y, x);
+            Console.Write(doRender ? player.LookType : " ");
+
+            // Clear or render every bodypart the player has
+            foreach (BodyPart bodyPart in player.BodyParts.ToList())
+            {
+                (x, y) = doRender switch // TUUUUUUUPLES!
+                {
+                    true => (bodyPart.GetPosition().X, bodyPart.GetPosition().Y),
+                    false => (bodyPart.GetOldPosition().X, bodyPart.GetOldPosition().Y)
+                };
+
+                Console.SetCursorPosition(y, x);
+                Console.ForegroundColor = (ConsoleColor)bodyPart.FoodColor;
+                Console.Write(doRender ? bodyPart.LookType : " ");
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+
+            // If we have cleared the player, rerun the method and draw the player
+            if (doRender)
+                return;
+            else
+                RenderPlayerAndBody(player, true);
         }
 
         /// <summary>
@@ -84,33 +82,50 @@ namespace Snake
         public void RenderFood()
         {
             // Find every food object inside the GameObjects list
-            List<GameObject> allFoods = GameObjects.FindAll((x) => x.GetObjectType() == ObjectType.Food);
+            List<GameObject> allFoods = CollisionObjects.FindAll((x) => x.GetObjectType() == ObjectType.Food);
 
             foreach(Food food in allFoods)
             {
                 Console.SetCursorPosition(food.GetPosition().Y, food.GetPosition().X);
+                Console.ForegroundColor = (ConsoleColor)food.FoodColor;
                 Console.Write(food.LookType);
+            }
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        /// <summary>
+        /// Generate every wall inside the CollisionObjects list
+        /// </summary>
+        public void RenderWalls()
+        {
+            // Find every wall or portal object inside the CollisionObjects list
+            List<GameObject> allWalls = CollisionObjects.FindAll((x) => x.GetObjectType() == ObjectType.Wall || x.GetObjectType() == ObjectType.Portal);
+
+            for(int i = 0; i < allWalls.Count; i++)
+            {
+                IRenderable wallRender = (IRenderable)allWalls[i];
+#if DEBUG
+                Console.SetCursorPosition(allWalls[i].GetPosition().Y, allWalls[i].GetPosition().X);
+#else
+                Console.SetCursorPosition(allWalls[i].GetPosition().Y, allWalls[i].GetPosition().X + 1);    // The +1 must be here for release, otherwise it will draw every wall 1 step up
+#endif
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(wallRender.LookType);
             }
         }
 
         /// <summary>
-        /// Generate every wall inside the GameObjects list
+        /// Rerender said position, with whatever object is there
         /// </summary>
-        public void RenderWalls()
+        public void RenderPosition(Vector2D position)
         {
-            // Find every wall object inside the GameObjects list
-            List<GameObject> allWalls = GameObjects.FindAll((x) => x.GetObjectType() == ObjectType.Wall);
-            List<GameObject> allPortals = GameObjects.FindAll((x) => x.GetObjectType() == ObjectType.Portal);
-
-            foreach (Wall wall in allWalls)
+            GameObject obj = CollisionObjects.Find((x) => x.GetPosition() == position); // Get the object to render
+            IRenderable renderObject = (IRenderable)obj;
+            if(renderObject != null)
             {
-                Console.SetCursorPosition(wall.GetPosition().Y, wall.GetPosition().X);
-                Console.Write(wall.LookType);
-            }
-            foreach (Portal portal in allPortals)
-            {
-                Console.SetCursorPosition(portal.GetPosition().Y, portal.GetPosition().X);
-                Console.Write(portal.LookType);
+                Console.SetCursorPosition(position.Y, position.X);
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(renderObject.LookType);
             }
         }
 
@@ -120,58 +135,60 @@ namespace Snake
         public void RenderInformation()
         {
             Console.SetCursorPosition(0, 0);
-            Console.Write($"Score: {Score}\t Time Alive: {Timer.GameTime}");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write($"Time Alive: {ScoreBoard.PlayTime}\nScore: {ScoreBoard.Score}");
         }
 
         /// <summary>
         /// Generate a square game arena with the specified top left and bottom right corners
         /// </summary>
-        /// <param name="topLeftCorner">The top left corner of the arena</param>
-        /// <param name="bottomRightCorner">To bottom right corner of the arena</param>
+        /// <param name="arenaSize">An array refering to the size of the arena</param>
+        /// <param name="difficulty">An int representing the amount of portals</param>
         public void GenerateArena(Vector2D[] arenaSize, int difficulty)
         {
             Random rand = new();
-            int portalChance = difficulty;
+            int portalChance = difficulty;  // Chance to create a portal
 
-            TopLeftCornerPos = arenaSize[0];
-            BottomRightCornerPos = arenaSize[1];
-
-            Food firstFood = Food.GenerateNewFood();
-            GameObjects.Add(firstFood);
-
-            // Create a wall of walls around the arena
-            // Give a chance to create portals instead of walls
-            for (int i = TopLeftCornerPos.Y+1; i < BottomRightCornerPos.Y; i++)
+            TopLeftCornerPos = arenaSize[0];    // Top left corner of the arena
+            BottomRightCornerPos = arenaSize[1];    // Bottom right corner of the arena
+            List<Vector2D> corners = new List<Vector2D>()   // List of the 4 corners of the arena. Will always be wall
             {
-                // Generate the top and bottom column
-                Vector2D wallTopPos = new(TopLeftCornerPos.X, i);
-                Vector2D wallBottomPos = new(BottomRightCornerPos.X, i);
-                if( rand.Next(1, 3) >= portalChance && wallTopPos.X != TopLeftCornerPos.Y && wallBottomPos.X != BottomRightCornerPos.Y)
-                {
-                    GameObjects.Add(new Portal(wallTopPos));
-                    GameObjects.Add(new Portal(wallBottomPos));
-                }
-                else
-                {
-                    GameObjects.Add(new Wall(wallTopPos));
-                    GameObjects.Add(new Wall(wallBottomPos));
-                }
-            }
+                TopLeftCornerPos,
+                new Vector2D(BottomRightCornerPos.X, TopLeftCornerPos.Y),   // Top right
+                new Vector2D(TopLeftCornerPos.X, BottomRightCornerPos.Y),   // Bottom left
+                BottomRightCornerPos
+            };
 
-            for (int i = TopLeftCornerPos.X; i <= BottomRightCornerPos.X; i++)
+            // Generate the first food
+            Food firstFood = Food.GenerateFirstFood();
+            CollisionObjects.Add(firstFood);
+
+            // Generate the walls and portals
+            for (int x = TopLeftCornerPos.X; x <= BottomRightCornerPos.X; x++)
             {
-                // Generate the left and right column
-                Vector2D wallLeftPos = new(i, TopLeftCornerPos.Y);
-                Vector2D wallRightPos = new(i, BottomRightCornerPos.Y);
-                if (rand.Next(1, 3) >= portalChance && wallLeftPos.X != TopLeftCornerPos.X && wallRightPos.X != BottomRightCornerPos.X)
+                for(int y = TopLeftCornerPos.Y; y <= BottomRightCornerPos.Y; y++)
                 {
-                    GameObjects.Add(new Portal(wallLeftPos, '│'));
-                    GameObjects.Add(new Portal(wallRightPos, '│'));
-                }
-                else
-                {
-                    GameObjects.Add(new Wall(wallLeftPos));
-                    GameObjects.Add(new Wall(wallRightPos));
+                    Vector2D newWallPos = new Vector2D(x, y);   // Position to be
+                    if(!IsInsideArena(newWallPos) && !CollisionObjects.Exists((wall) => wall.GetPosition() == newWallPos))  // Check if we at the sides of the arena, and that there isn't a wall already here
+                    {
+                        bool doPortalExist = CollisionObjects.Exists((portal) => portal.GetPosition() == newWallPos);   // Is there already a portal here? Used on the bottom and right hand side of the arena
+                        bool isCorner = corners.Contains(newWallPos);   // Is it a corner position?
+
+                        // If we create a portal, make sure to create the opposite portal aswell.
+                        if (rand.Next(1, 3) >= portalChance && !doPortalExist && (x == TopLeftCornerPos.X || y == TopLeftCornerPos.Y) && !isCorner)
+                        {
+                            int oppositeX = x == TopLeftCornerPos.X ? BottomRightCornerPos.X : x; // The opposite side of the arena
+                            int oppositeY = x != TopLeftCornerPos.X ? BottomRightCornerPos.Y : y; // The opposite side of the arena
+                            char lookType = x == TopLeftCornerPos.X ? '─' : '│';    // Vertical or Horizontal portal?
+
+                            Portal portal = new(newWallPos, lookType);
+                            Portal portal2 = new(new Vector2D(oppositeX, oppositeY), lookType);  // Create the same on the opposite wall
+                            CollisionObjects.Add(portal);
+                            CollisionObjects.Add(portal2);
+                        }
+                        else
+                            CollisionObjects.Add(new Wall(new Vector2D(x, y)));
+                    }
                 }
             }
         }
@@ -191,5 +208,12 @@ namespace Snake
 
             return false;
         }
+
+        /// <summary>
+        /// Check if incoming bool is true or false
+        /// </summary>
+        /// <param name="myBool">The boolean to check</param>
+        /// <returns>True if the boolean is true, and false if it is false</returns>
+        public static bool IsThisBoolTrue(bool myBool) => !myBool != !false && !!myBool != !!false || true.ToString() == myBool.ToString() ? !true == false && myBool != !!false ? !(typeof(decimal) != myBool.GetType()) || false != !!myBool ? myBool == !false : !false && myBool && !myBool != true : myBool.GetType() != typeof(string) && false != myBool || true != false && false != myBool && myBool == false : false; // :)
     }
 }

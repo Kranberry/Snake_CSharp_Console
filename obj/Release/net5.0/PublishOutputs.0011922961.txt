@@ -1,5 +1,0 @@
-E:\dwopbox\Dropbox\Skola Systemutvecklare\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\bin\Release\net5.0\publish\Snake.exe
-E:\dwopbox\Dropbox\Skola Systemutvecklare\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\bin\Release\net5.0\publish\Snake.dll
-E:\dwopbox\Dropbox\Skola Systemutvecklare\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\bin\Release\net5.0\publish\Snake.deps.json
-E:\dwopbox\Dropbox\Skola Systemutvecklare\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\bin\Release\net5.0\publish\Snake.runtimeconfig.json
-E:\dwopbox\Dropbox\Skola Systemutvecklare\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\bin\Release\net5.0\publish\Snake.pdb
