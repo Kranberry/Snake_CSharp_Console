@@ -176,6 +176,7 @@ namespace Snake
         {
             Console.Clear();
             Console.WriteLine("Written by yours truly");
+            Console.WriteLine("Andreas Kvist");
             Console.WriteLine("......................\n\n");
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();

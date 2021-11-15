@@ -29,3 +29,4 @@ E:\dwopbox\Dropbox\Skola Systemutvecklare\Avklarade\Programmering .net fördjupn
 E:\dwopbox\Dropbox\Skola Systemutvecklare\Avklarade\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\obj\x64\Release\net5.0\ref\Snake.dll
 E:\dwopbox\Dropbox\Skola Systemutvecklare\Avklarade\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\obj\x64\Release\net5.0\Snake.pdb
 E:\dwopbox\Dropbox\Skola Systemutvecklare\Avklarade\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\obj\x64\Release\net5.0\Snake.genruntimeconfig.cache
+E:\dwopbox\Dropbox\Skola Systemutvecklare\Avklarade\Programmering .net fördjupning\Uppgifter\2_Snake\Snake\obj\x64\Release\net5.0\Snake.csproj.AssemblyReference.cache
