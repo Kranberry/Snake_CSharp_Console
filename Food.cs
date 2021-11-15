@@ -90,19 +90,19 @@ namespace Snake
         /// Generate a new Food instance that has a legal Vector2D position, food gives 1 point
         /// </summary>
         /// <returns>A food instance with a legal Vector2D position</returns>
-        private Food GenerateBadFood(Vector2D spawnPos) => new Food("BadFood", spawnPos, 1);
+        public Food GenerateBadFood(Vector2D spawnPos) => new Food("BadFood", spawnPos, 1);
 
         /// <summary>
         /// Generate a new Food instance that has a legal Vector2D position, food gives 2 point
         /// </summary>
         /// <returns>A food instance with a legal Vector2D position</returns>
-        private Food GenerateMediocreFood(Vector2D spawnPos) => new Food("MediumFood", spawnPos, 2, FoodColor.Medium);
+        public Food GenerateMediocreFood(Vector2D spawnPos) => new Food("MediumFood", spawnPos, 2, FoodColor.Medium);
 
         /// <summary>
         /// Generate a new Food instance that has a legal Vector2D position, food gives 3 point
         /// </summary>
         /// <returns>A food instance with a legal Vector2D position</returns>
-        private Food GenerateBestFood(Vector2D spawnPos) => new Food("BestFood", spawnPos, 3, FoodColor.Good);
+        public Food GenerateBestFood(Vector2D spawnPos) => new Food("BestFood", spawnPos, 3, FoodColor.Good);
 
         /// <summary>
         /// Generate a Vector2D object that exists within the walls of the arena
